@@ -132,7 +132,7 @@ tr:last-child td { border-bottom: 0; }
   .sidebar { display: none; }
   .topbar { padding: 0 18px; }
   .page { padding: 24px 18px; }
-  .mobile-nav { position: fixed; z-index: 40; display: grid; grid-template-columns: repeat(5, 1fr); inset: auto 0 0; height: 66px; border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(12px); }
+  .mobile-nav { position: fixed; z-index: 40; display: grid; grid-template-columns: repeat(6, 1fr); inset: auto 0 0; height: 66px; border-top: 1px solid var(--line); background: rgb(255 255 255 / 96%); backdrop-filter: blur(12px); }
   .mobile-nav a { display: grid; place-items: center; color: var(--muted); text-decoration: none; font-size: .72rem; }
   .mobile-nav a.router-link-active { color: var(--primary); font-weight: 800; }
   .grid-3 { grid-template-columns: 1fr; }

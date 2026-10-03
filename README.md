@@ -24,7 +24,7 @@ Vue 3 Web -> Fastify API -> PostgreSQL
 - `apps/web`：Vue 3、TypeScript、Pinia、Vue Router、WaveSurfer.js、ECharts。
 - `apps/api`：Fastify、Zod、Prisma、Argon2id、Refresh Token 轮换、S3 预签名上传。
 - `apps/worker`：BullMQ 音频探测、波形峰值、删除清理、逾期目标和数据导出。
-- `packages/contracts`：前后端共享的 Zod 请求约束与领域纯函数。
+- `packages/contracts`：前后端共享的 Zod 请求约束与领域纯函数（含听辨训练出题、判分与升级规则）。
 - `infra/scripts`：测试音频生成脚本。
 
 ## 本地启动
@@ -89,6 +89,12 @@ npm run test:e2e
 | `PUBLIC_API_ORIGIN` | 对外 API 地址，用于 Cookie Secure 判断 | `https://api.example.com` |
 
 完整变量见 [.env.example](./.env.example)。生产环境必须使用 HTTPS，设置真实的 `PUBLIC_API_ORIGIN`，并禁止在 `WEB_ORIGIN` 中使用通配符。
+
+## 听辨训练
+
+- 音程（5 级，纯一度到纯八度）与节奏（5 级，四分/八分/十六分音符、拍号与休止符）题目由 `(题型, 等级, 种子)` 经共享纯函数确定性生成，传入相同种子可复现题面。
+- 题目在生成时快照 `payload`、标准答案与 `ruleVersion`；答题轨迹只追加，每题有唯一约束，重复提交返回 `409 ALREADY_ANSWERED`，只计一次。
+- 下一题等级由历史轨迹推导（连续 3 次正确升级、连续 2 次错误降级）；规则升级只新增版本号，旧版本记录不被回溯重算。
 
 ## 数据与安全
 

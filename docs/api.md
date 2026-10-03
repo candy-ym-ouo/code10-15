@@ -114,6 +114,32 @@ Refresh Cookie 路径为 `/api/v1/auth`，生产环境在 HTTPS 下自动使用 
 
 完成复盘请求会原子写入复盘、目标、进度并更新练习状态。任一步失败时全部回滚，返回 `REVIEW_INCOMPLETE` 且 `details` 为缺失项数组。
 
+## 听辨训练
+
+基础路径：`/ear-training`，全部需要登录。
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/ear-training/profile` | 两种题型的正确率、连胜、最高等级与下一题等级 |
+| POST | `/ear-training/questions` | 服务端按历史推导等级并出题；可传 `seed` 复现题面 |
+| GET | `/ear-training/questions/:id` | 题目详情；已作答时附带首次判分结果 |
+| POST | `/ear-training/questions/:id/answer` | 提交判分；每题只计一次 |
+| GET | `/ear-training/answers` | 答题轨迹光标分页，可按 `type` 过滤 |
+
+出题请求：
+
+```json
+{ "type": "INTERVAL", "seed": "可选-传入则题面可复现" }
+```
+
+音程题提交 `{ "answerSemitones": 7 }`，节奏题提交 `{ "tapTimesMs": [120, 611, 905] }`（相对题面起点的毫秒时刻）。
+
+设计约束：
+
+- 题目由 `(题型, 等级, 种子)` 通过共享纯函数确定性生成，同种子同等级必为同题；题目快照保存 `level`、`seed`、`ruleVersion`、`payload` 与标准答案。
+- 重复提交同一题返回 `409 ALREADY_ANSWERED`（details 含首次 `answerId`），不插入、不覆盖，重复提交只计一次。
+- 升级规则（当前 `ruleVersion=1`：连续 3 次正确升 1 级、连续 2 次错误降 1 级）只读取历史轨迹推导下一题等级；规则升级只新增版本号，旧版本题目与作答永不被回溯改写。
+
 ## 统计与导出
 
 | 方法 | 路径 | 说明 |

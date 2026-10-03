@@ -81,6 +81,11 @@ enum GoalStatus {
   CANCELLED
 }
 
+enum EarTrainingType {
+  INTERVAL
+  RHYTHM
+}
+
 model User {
   id                String           @id @default(uuid()) @db.Uuid
   email             String           @unique @db.VarChar(254)
@@ -100,6 +105,8 @@ model User {
   goalProgresses    GoalProgress[]
   auditLogs         AuditLog[]
   dataExports       DataExport[]
+  earTrainingQuestions EarTrainingQuestion[]
+  earTrainingAnswers   EarTrainingAnswer[]
 
   @@map("users")
 }
@@ -310,4 +317,43 @@ model AuditLog {
   @@index([userId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
   @@map("audit_logs")
+}
+
+// 听辨训练：题面（种子、等级、规则版本在出题时快照，规则升级后旧题不被改写）
+model EarTrainingQuestion {
+  id           String              @id @default(uuid()) @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  type         EarTrainingType
+  level        Int                 @db.SmallInt
+  seed         String              @db.VarChar(200)
+  ruleVersion  Int                 @map("rule_version") @db.SmallInt
+  payload      Json
+  canonicalAnswer Json              @map("canonical_answer")
+  answer       EarTrainingAnswer?
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, createdAt(sort: Desc)])
+  @@map("ear_training_questions")
+}
+
+// 答题轨迹：每题至多一条（questionId 唯一约束保证重复提交只计一次，历史只追加不修改）
+model EarTrainingAnswer {
+  id           String              @id @default(uuid()) @db.Uuid
+  questionId   String              @unique @map("question_id") @db.Uuid
+  userId       String              @map("user_id") @db.Uuid
+  type         EarTrainingType
+  level        Int                 @db.SmallInt
+  ruleVersion  Int                 @map("rule_version") @db.SmallInt
+  response     Json
+  grade        Json
+  correct      Boolean
+  answeredAt   DateTime            @default(now()) @map("answered_at") @db.Timestamptz(6)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  question     EarTrainingQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, answeredAt(sort: Desc)])
+  @@index([userId, answeredAt(sort: Desc)])
+  @@map("ear_training_answers")
 }

@@ -24,6 +24,7 @@ export async function buildUserExport(userId: string, format: string): Promise<{
           review: true,
         },
       },
+      earTrainingQuestions: { include: { answer: true } },
     },
   });
 
@@ -34,6 +35,10 @@ export async function buildUserExport(userId: string, format: string): Promise<{
       for (const media of session.mediaAssets) rows.push(["media", media.id, session.id, JSON.stringify(media)]);
       for (const annotation of session.annotations) rows.push(["annotation", annotation.id, session.id, JSON.stringify(annotation)]);
       for (const goal of session.goals) rows.push(["goal", goal.id, session.id, JSON.stringify(goal)]);
+    }
+    for (const question of user.earTrainingQuestions) {
+      rows.push(["earTrainingQuestion", question.id, "", JSON.stringify(question)]);
+      if (question.answer) rows.push(["earTrainingAnswer", question.answer.id, question.id, JSON.stringify(question.answer)]);
     }
     return { body: rows.map((row) => row.map(csvEscape).join(",")).join("\n"), contentType: "text/csv; charset=utf-8" };
   }
