@@ -81,6 +81,16 @@ enum GoalStatus {
   CANCELLED
 }
 
+enum EarDrillKind {
+  INTERVAL
+  RHYTHM
+}
+
+enum EarDrillStatus {
+  OPEN
+  ANSWERED
+}
+
 model User {
   id                String           @id @default(uuid()) @db.Uuid
   email             String           @unique @db.VarChar(254)
@@ -100,6 +110,8 @@ model User {
   goalProgresses    GoalProgress[]
   auditLogs         AuditLog[]
   dataExports       DataExport[]
+  earDrills         EarDrill[]
+  earAttempts       EarAttempt[]
 
   @@map("users")
 }
@@ -292,6 +304,47 @@ model DataExport {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("data_exports")
+}
+
+model EarDrill {
+  id               String         @id @default(uuid()) @db.Uuid
+  userId           String         @map("user_id") @db.Uuid
+  kind             EarDrillKind
+  seed             String         @db.VarChar(64)
+  questionIndex    Int            @map("question_index")
+  generatorVersion Int            @map("generator_version")
+  difficulty       Int            @db.SmallInt
+  payload          Json
+  status           EarDrillStatus @default(OPEN)
+  answeredAt       DateTime?      @map("answered_at") @db.Timestamptz(6)
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attempts         EarAttempt[]
+
+  @@unique([userId, seed, questionIndex])
+  @@index([userId, kind, createdAt(sort: Desc)])
+  @@map("ear_drills")
+}
+
+model EarAttempt {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @map("user_id") @db.Uuid
+  drillId         String   @map("drill_id") @db.Uuid
+  clientAttemptId String   @map("client_attempt_id") @db.VarChar(64)
+  answer          Json
+  correct         Boolean
+  counted         Boolean
+  responseMs      Int?     @map("response_ms")
+  ruleVersion     Int      @map("rule_version")
+  scoreAwarded    Int      @map("score_awarded")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  drill           EarDrill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+
+  @@unique([drillId, clientAttemptId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("ear_attempts")
 }
 
 model AuditLog {

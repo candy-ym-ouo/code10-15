@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./ear.js";
+
 export const SESSION_STATUSES = [
   "DRAFT",
   "IN_REVIEW",

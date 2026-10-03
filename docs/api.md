@@ -114,6 +114,42 @@ Refresh Cookie 路径为 `/api/v1/auth`，生产环境在 HTTPS 下自动使用 
 
 完成复盘请求会原子写入复盘、目标、进度并更新练习状态。任一步失败时全部回滚，返回 `REVIEW_INCOMPLETE` 且 `details` 为缺失项数组。
 
+## 听辨训练
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/ear/drills` | 生成一组题目；同（用户, 种子, 题号）唯一，重复请求复用已生成题目 |
+| GET | `/ear/drills` | 题目列表（光标分页，`kind`/`status` 筛选）；未作答题目不下发答案 |
+| GET | `/ear/drills/:id` | 题目详情（含完整播放参数）与作答记录 |
+| POST | `/ear/drills/:id/attempts` | 提交答案；幂等，重复提交返回首个结果且不重复计分 |
+| GET | `/ear/attempts` | 答题轨迹（倒序，可按 `drillId` 筛选）；只追加不修改 |
+| GET | `/ear/level` | 等级：`snapshot` 为历史快照分口径，`current` 为现行规则重放口径 |
+
+生成题目：
+
+```json
+{
+  "kind": "INTERVAL",
+  "count": 5,
+  "difficulty": 1,
+  "seed": "recital-2026"
+}
+```
+
+`kind` 为 `INTERVAL`（音程）或 `RHYTHM`（节奏），`difficulty` 为 1-3。`seed` 可省略（服务端随机生成）；相同种子、题型、难度和题号永远生成相同题目。同种子但题型或难度不一致时返回 `SEED_CONFLICT`。
+
+提交答案：
+
+```json
+{
+  "clientAttemptId": "9f1c2a4e-...",
+  "answer": { "semitones": 7 },
+  "responseMs": 3200
+}
+```
+
+音程题答案为 `{ "semitones": 1-12 }`，节奏题为 `{ "pattern": "x-x---x-------x-" }`（16 位 `x`/`-` 串）。`clientAttemptId` 由客户端生成，同（题目, clientAttemptId）只记录一次：重复提交返回 `deduplicated: true` 和首个落库结果。每道题只有首次提交计入总分（`counted: true`），后续提交仍记入轨迹但 `scoreAwarded` 为 0。每条轨迹快照判分时的 `ruleVersion` 与 `scoreAwarded`，等级规则升级不回改历史。
+
 ## 统计与导出
 
 | 方法 | 路径 | 说明 |
